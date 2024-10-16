@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Chart App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+      }
+
+      h1 {
+        margin-top: 20px;
+      }
+
+      .navbar {
+        background: #fff;
+        padding: 15px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .navbar div {
+        margin: 0 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      select {
+        width: 200px;
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        font-size: 16px;
+      }
+
+      button {
+        background-color: #00a6fb;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      button:hover {
+        background-color: #00a6fb;
+      }
+
+      #chart {
+        margin-top: 30px;
+        width: 80%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Stock Dashboard</h1>
+    <form method="POST" id="form">
+      <div class="navbar">
+        <div>
+          <label for="stock">Select Stock:</label>
+          <select name="stock" id="stock">
+            {% for stock in stocks %}
+            <option value="{{ stock }}" {% if stock == selected_stock %}selected{% endif %}>{{ stock }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="chart_style">Select Chart Style:</label>
+          <select name="chart_style" id="chart_style">
+            <option value="line" {% if selected_chart_style == 'line' %}selected{% endif %}>Line</option>
+            <option value="bar" {% if selected_chart_style == 'bar' %}selected{% endif %}>Bar</option>
+            <option value="candlestick" {% if selected_chart_style == 'candlestick' %}selected{% endif %}>Candlestick</option>
+          </select>
+        </div>
+        <div>
+          <label for="interval">Interval:</label>
+          <select name="interval" id="interval">
+            <option value="1m" {% if selected_interval == '1m' %}selected{% endif %}>1 Minute</option>
+            <option value="2m" {% if selected_interval == '2m' %}selected{% endif %}>2 Minutes</option>
+            <option value="5m" {% if selected_interval == '5m' %}selected{% endif %}>5 Minutes</option>
+            <option value="15m" {% if selected_interval == '15m' %}selected{% endif %}>15 Minutes</option>
+            <option value="30m" {% if selected_interval == '30m' %}selected{% endif %}>30 Minutes</option>
+            <option value="1h" {% if selected_interval == '1h' %}selected{% endif %}>1 Hour</option>
+          </select>
+        </div>
+        <div>
+          <button type="submit">Generate Chart</button>
+        </div>
+        <div>
+                <button type="button" id="dash-btn">Open Dash</button>
+        </div>
+      </div>
+    </form>
+    {% if chart_json %}
+    <div id="chart"></div>
+    <script>
+        var chart_data = {{ chart_json | safe }};
+        Plotly.newPlot('chart', chart_data.data, chart_data.layout);
+
+        const updateChart = async () => {
+          const response = await fetch('/update_chart', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              stock: document.getElementById('stock').value,
+              chart_style: document.getElementById('chart_style').value,
+              interval: document.getElementById('interval').value
+            })
+          });
+
+          const new_data = await response.json();
+
+          if (new_data.error) {
+            alert(new_data.error);
+          } else {
+            Plotly.react('chart', new_data.data, new_data.layout);
+          }
+        };
+
+        setInterval(updateChart, 1000); 
+
+         document.getElementById('dash-btn').addEventListener('click', () => {
+            window.location.href = '/dash';
+        });
+    </script>
+    {% endif %}
+  </body>
+</html>
